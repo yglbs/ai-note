@@ -11,6 +11,7 @@ import {
 } from "@/domain/knowledge";
 import { api, touchSpace } from "@/lib/client";
 import type { AITaskRow } from "@/db/schema";
+import { useLearningMode } from "@/features/settings/useLearningMode";
 import { KnowledgeMap } from "./KnowledgeMap";
 
 export function KnowledgeSpace(props: {
@@ -18,6 +19,7 @@ export function KnowledgeSpace(props: {
   onCreate: () => void;
   onLibraryChange: () => void;
 }) {
+  const learning = useLearningMode();
   const [space, setSpace] = useState<SpaceSnapshot | null>(null);
   const [task, setTask] = useState<AITaskRow | null>(null);
   const [error, setError] = useState("");
@@ -114,8 +116,12 @@ export function KnowledgeSpace(props: {
   if (space.notes.length === 0) {
     return (
       <div className="browser-empty">
-        <h1>知识会从一篇笔记开始</h1>
-        <p>写下来之后，这里会慢慢长出地图、缺口和该复习的问题。</p>
+        <h1>{learning.enabled ? "知识会从一篇笔记开始" : "从一篇笔记开始"}</h1>
+        <p>
+          {learning.enabled
+            ? "写下来之后，这里会慢慢长出地图、缺口和该复习的问题。"
+            : "先记下来。需要时用「整理 → 开发输入」把头脑风暴收成可开发的说明。"}
+        </p>
         <button className="btn" onClick={props.onCreate}>
           新建笔记
         </button>
@@ -125,7 +131,7 @@ export function KnowledgeSpace(props: {
 
   const now = Date.now();
   const dueReminders = space.reminders.filter((item) => item.remindAt <= now);
-  const dueReviews = space.reviews.filter((item) => item.status === "pending");
+  const dueReviews = learning.enabled ? space.reviews.filter((item) => item.status === "pending") : [];
   const selected = space.points.find((point) => point.id === selectedId) ?? null;
   const draft = space.drafts[0] ?? null;
 
@@ -133,8 +139,8 @@ export function KnowledgeSpace(props: {
     <div className="space">
       <header className="space-head">
         <div>
-          <p className="space-kicker">知识空间</p>
-          <h1>这些笔记，正在长成一个体系</h1>
+          <p className="space-kicker">{learning.enabled ? "知识空间" : "笔记"}</p>
+          <h1>{learning.enabled ? "这些笔记，正在长成一个体系" : "最近写过的，都在这里"}</h1>
         </div>
         <button type="button" className="btn ghost" onClick={() => setMergeOpen((open) => !open)}>
           合并笔记{draft ? " · 有草稿" : ""}
@@ -159,7 +165,7 @@ export function KnowledgeSpace(props: {
 
       <section className="space-block">
         <header>
-          <h2>最近学习</h2>
+          <h2>{learning.enabled ? "最近学习" : "最近笔记"}</h2>
         </header>
         <div className="slip-row">
           {recent.map((note) => (
@@ -171,113 +177,144 @@ export function KnowledgeSpace(props: {
         </div>
       </section>
 
-      <section className="space-block map-sheet">
-        <header>
-          <h2>知识地图</h2>
-          <button className="btn ghost" disabled={Boolean(pending)} onClick={() => void run({ action: "atlas" })}>
-            {space.points.length > 0 ? "重新生成" : "生成地图"}
-          </button>
-        </header>
-        <p className="space-lead">一次只展开一篇。点上面的笔记，圆点就是这篇里的知识点，再点开看详情。</p>
-        <KnowledgeMap
-          notes={space.notes}
-          points={space.points}
-          edges={space.edges}
-          selectedId={selectedId}
-          focusNoteId={focusNoteId}
-          onOpenNote={(id) => props.onOpen(id)}
-          onSelectPoint={setSelectedId}
-          onConfirmEdge={(id) => void run({ action: "confirm-edge", edgeId: id })}
-        />
-        {selected ? (
-          <PointCard
-            point={selected}
-            notes={space.notes}
-            onOpen={props.onOpen}
-            onConfirm={() => void run({ action: "confirm-point", pointId: selected.id })}
-          />
-        ) : null}
-      </section>
-
-      <div className="space-split">
-        <section className="quiet-card" id="review-block">
-          <header>
-            <h2>待复习</h2>
-            <button className="btn ghost" disabled={Boolean(pending)} onClick={() => void run({ action: "review-plan" })}>
-              排今天的复习
-            </button>
-          </header>
-          <p className="space-lead">用提问检查掌握程度。答完会记到这个知识点上，下一轮地图和面试都会看到。</p>
-          {dueReviews.length === 0 ? <p className="space-empty">今天还没有要回忆的问题。</p> : null}
-          {dueReviews.map((item) => (
-            <article key={item.id} className={`recall ${focusReview === item.id ? "is-focus" : ""}`}>
-              <small>{item.pointLabel}</small>
-              <p>{item.prompt}</p>
-              <textarea
-                value={answers[item.id] ?? ""}
-                placeholder="先试着答，再看笔记"
-                onChange={(event) => setAnswers((current) => ({ ...current, [item.id]: event.target.value }))}
+      {learning.enabled ? (
+        <>
+          <section className="space-block map-sheet">
+            <header>
+              <h2>知识地图</h2>
+              <button className="btn ghost" disabled={Boolean(pending)} onClick={() => void run({ action: "atlas" })}>
+                {space.points.length > 0 ? "重新生成" : "生成地图"}
+              </button>
+            </header>
+            <p className="space-lead">一次只展开一篇。点上面的笔记，圆点就是这篇里的知识点，再点开看详情。</p>
+            <KnowledgeMap
+              notes={space.notes}
+              points={space.points}
+              edges={space.edges}
+              selectedId={selectedId}
+              focusNoteId={focusNoteId}
+              onOpenNote={(id) => props.onOpen(id)}
+              onSelectPoint={setSelectedId}
+              onConfirmEdge={(id) => void run({ action: "confirm-edge", edgeId: id })}
+            />
+            {selected ? (
+              <PointCard
+                point={selected}
+                notes={space.notes}
+                onOpen={props.onOpen}
+                onConfirm={() => void run({ action: "confirm-point", pointId: selected.id })}
               />
-              <div className="recall-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={Boolean(pending) || !(answers[item.id] ?? "").trim()}
-                  onClick={() =>
-                    void run({ action: "answer-review", itemId: item.id, answer: answers[item.id] ?? "" })
-                  }
-                >
-                  回答
-                </button>
-                {item.noteId ? (
-                  <button type="button" className="text-btn" onClick={() => props.onOpen(item.noteId!, "interview")}>
-                    去面试
-                  </button>
-                ) : null}
-              </div>
-            </article>
-          ))}
-          {space.reviews
-            .filter((item) => item.status === "done")
-            .slice(0, 2)
-            .map((item) => (
-              <p key={item.id} className="recall-done">
-                {item.pointLabel} · {item.score ?? 0} 分 · {masteryLabel(masteryFromScore(item.score ?? 0))}
-                {item.comment ? `。${item.comment}` : ""}
-              </p>
-            ))}
-        </section>
+            ) : null}
+          </section>
 
+          <div className="space-split">
+            <section className="quiet-card" id="review-block">
+              <header>
+                <h2>待复习</h2>
+                <button
+                  className="btn ghost"
+                  disabled={Boolean(pending)}
+                  onClick={() => void run({ action: "review-plan" })}
+                >
+                  排今天的复习
+                </button>
+              </header>
+              <p className="space-lead">用提问检查掌握程度。答完会记到这个知识点上，下一轮地图和面试都会看到。</p>
+              {dueReviews.length === 0 ? <p className="space-empty">今天还没有要回忆的问题。</p> : null}
+              {dueReviews.map((item) => (
+                <article key={item.id} className={`recall ${focusReview === item.id ? "is-focus" : ""}`}>
+                  <small>{item.pointLabel}</small>
+                  <p>{item.prompt}</p>
+                  <textarea
+                    value={answers[item.id] ?? ""}
+                    placeholder="先试着答，再看笔记"
+                    onChange={(event) => setAnswers((current) => ({ ...current, [item.id]: event.target.value }))}
+                  />
+                  <div className="recall-actions">
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={Boolean(pending) || !(answers[item.id] ?? "").trim()}
+                      onClick={() =>
+                        void run({ action: "answer-review", itemId: item.id, answer: answers[item.id] ?? "" })
+                      }
+                    >
+                      回答
+                    </button>
+                    {item.noteId ? (
+                      <button
+                        type="button"
+                        className="text-btn"
+                        onClick={() => props.onOpen(item.noteId!, "interview")}
+                      >
+                        去面试
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+              {space.reviews
+                .filter((item) => item.status === "done")
+                .slice(0, 2)
+                .map((item) => (
+                  <p key={item.id} className="recall-done">
+                    {item.pointLabel} · {item.score ?? 0} 分 · {masteryLabel(masteryFromScore(item.score ?? 0))}
+                    {item.comment ? `。${item.comment}` : ""}
+                  </p>
+                ))}
+            </section>
+
+            <section className="quiet-card">
+              <header>
+                <h2>还缺什么</h2>
+                <button className="btn ghost" disabled={Boolean(pending)} onClick={() => void run({ action: "gaps" })}>
+                  看看缺口
+                </button>
+              </header>
+              {space.gaps.length === 0 ? (
+                <p className="space-empty">地图形成之后，这里会指出还没写到的关键知识。</p>
+              ) : null}
+              {space.gaps.map((gap) => (
+                <article key={gap.id} className="gap-card">
+                  <strong>{gap.label}</strong>
+                  <p>{gap.reason}</p>
+                  {gap.status === "created" && gap.noteId ? (
+                    <button type="button" className="text-btn" onClick={() => props.onOpen(gap.noteId!)}>
+                      打开学习笔记
+                    </button>
+                  ) : (
+                    <div className="recall-actions">
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => void run({ action: "create-gap", gapId: gap.id })}
+                      >
+                        写成笔记
+                      </button>
+                      <button
+                        type="button"
+                        className="text-btn"
+                        onClick={() => void run({ action: "dismiss-gap", gapId: gap.id })}
+                      >
+                        先不用
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </section>
+          </div>
+        </>
+      ) : (
         <section className="quiet-card">
           <header>
-            <h2>还缺什么</h2>
-            <button className="btn ghost" disabled={Boolean(pending)} onClick={() => void run({ action: "gaps" })}>
-              看看缺口
-            </button>
+            <h2>记事模式</h2>
           </header>
-          {space.gaps.length === 0 ? <p className="space-empty">地图形成之后，这里会指出还没写到的关键知识。</p> : null}
-          {space.gaps.map((gap) => (
-            <article key={gap.id} className="gap-card">
-              <strong>{gap.label}</strong>
-              <p>{gap.reason}</p>
-              {gap.status === "created" && gap.noteId ? (
-                <button type="button" className="text-btn" onClick={() => props.onOpen(gap.noteId!)}>
-                  打开学习笔记
-                </button>
-              ) : (
-                <div className="recall-actions">
-                  <button type="button" className="btn" onClick={() => void run({ action: "create-gap", gapId: gap.id })}>
-                    写成笔记
-                  </button>
-                  <button type="button" className="text-btn" onClick={() => void run({ action: "dismiss-gap", gapId: gap.id })}>
-                    先不用
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+          <p className="space-lead">
+            学习复习已关闭。底部「整理」里选「开发输入」，可把头脑风暴收成目标、范围、功能清单和验收标准。需要复习时，在左上角设置里打开「学习复习」。
+          </p>
         </section>
-      </div>
+      )}
 
       {mergeOpen ? (
       <section

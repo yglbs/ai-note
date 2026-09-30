@@ -17,6 +17,7 @@ import { ImageStudio } from "@/features/images/ImageStudio";
 import { ReviewRail } from "@/features/check/ReviewRail";
 import { InterviewPanel } from "@/features/interview/InterviewPanel";
 import { SettingsPanel } from "@/features/settings/SettingsPanel";
+import { useLearningMode } from "@/features/settings/useLearningMode";
 import { AiDock, type DockAction } from "@/features/dock/AiDock";
 import { api } from "@/lib/client";
 import { parseDocument } from "@/lib/document";
@@ -53,11 +54,12 @@ const reviewOnce = new Set<string>();
 
 export function NoteWorkspace(props: { noteId: string; initialMode?: "check" | "interview" }) {
   const router = useRouter();
+  const learning = useLearningMode();
   const [mode, setMode] = useState<Mode>(props.initialMode ?? "read");
   const [data, setData] = useState<WorkspacePayload | null>(null);
   const [title, setTitle] = useState("");
   const [task, setTask] = useState<AITaskRow | null>(null);
-  const [kind, setKind] = useState<OrganizeKind>("structured");
+  const [kind, setKind] = useState<OrganizeKind>("dev_input");
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [style, setStyle] = useState<ImageStyleId>("pencil");
   const [aspectRatio, setAspectRatio] = useState<AspectRatioId>("4:3");
@@ -256,7 +258,14 @@ export function NoteWorkspace(props: { noteId: string; initialMode?: "check" | "
     if (latest) void openInterview(latest.id);
   }, [mode, data, interview]);
 
+  useEffect(() => {
+    if (learning.ready && !learning.enabled && (mode === "check" || mode === "interview")) {
+      setMode("read");
+    }
+  }, [learning.ready, learning.enabled, mode]);
+
   function openMode(next: DockAction) {
+    if (!learning.enabled && (next === "check" || next === "interview")) return;
     setAppearance(false);
     setReviewNotice("");
     setScopeNotice("");
@@ -473,7 +482,7 @@ export function NoteWorkspace(props: { noteId: string; initialMode?: "check" | "
             ) : (
               <>
                 <div className="stage-wrap notes-stage">{paper}</div>
-                <AiDock selection={selectionText} onOpen={openMode} />
+                <AiDock selection={selectionText} learning={learning.enabled} onOpen={openMode} />
               </>
             )}
           </>

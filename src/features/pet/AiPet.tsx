@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import { PetFigure } from "./PetFigure";
+import { useLearningMode } from "@/features/settings/useLearningMode";
 import { useCompanion } from "./useCompanion";
 import { usePetKind } from "./usePetKind";
 
 export function AiPet() {
   const pathname = usePathname();
   const router = useRouter();
+  const learning = useLearningMode();
   const companion = useCompanion();
   const kind = usePetKind();
   const [open, setOpen] = useState(false);
@@ -33,7 +35,7 @@ export function AiPet() {
     return () => window.clearInterval(timer);
   }, [onDesktop]);
 
-  if (pathname === "/pet" || onDesktop) return null;
+  if (!learning.enabled || pathname === "/pet" || onDesktop) return null;
 
   async function placeOnDesktop() {
     setDesktopNote("");

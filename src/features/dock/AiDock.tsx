@@ -9,13 +9,20 @@ const ACTIONS = [
 
 export type DockAction = (typeof ACTIONS)[number]["id"];
 
-export function AiDock(props: { onOpen: (action: DockAction) => void; selection?: string }) {
+const LEARNING_ACTIONS = new Set<DockAction>(["check", "interview"]);
+
+export function AiDock(props: {
+  onOpen: (action: DockAction) => void;
+  selection?: string;
+  learning?: boolean;
+}) {
   const preview = previewSelection(props.selection ?? "");
+  const actions = ACTIONS.filter((action) => props.learning || !LEARNING_ACTIONS.has(action.id));
   return (
     <div className="ai-dock" onMouseDown={(event) => event.preventDefault()}>
       {preview ? <p className="selection-hint">已选中「{preview}」· 整理和生图只处理这段</p> : null}
       <div className="ai-dock-bar" role="toolbar" aria-label="笔记里的 AI">
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <button key={action.id} type="button" onClick={() => props.onOpen(action.id)}>
             {action.label}
           </button>

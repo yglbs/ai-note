@@ -92,6 +92,38 @@ button {
   height: 32px;
 }
 
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 252, 248, 0.72);
+  box-shadow: 0 8px 24px rgba(44, 41, 38, 0.05);
+  cursor: pointer;
+}
+.toggle-row span {
+  display: grid;
+  gap: 4px;
+}
+.toggle-row strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.toggle-row small {
+  color: var(--desk-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.toggle-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  flex: none;
+}
+
 .api-settings-modal {
   width: min(440px, 92vw);
   text-align: left;

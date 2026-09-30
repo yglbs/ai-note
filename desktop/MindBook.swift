@@ -4,6 +4,8 @@ import WebKit
 final class MindBookApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDelegate, NSWindowDelegate {
     private var mainWindow: NSWindow?
     private var petWindow: NSWindow?
+    private var mainWeb: WKWebView?
+    private var petWeb: WKWebView?
     private var server: Process?
     private var startedServer = false
     private let session = URLSession(configuration: .ephemeral)
@@ -65,6 +67,7 @@ final class MindBookApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
 
     private func installMenu() {
         let menubar = NSMenu()
+
         let appItem = NSMenuItem()
         menubar.addItem(appItem)
         let appMenu = NSMenu()
@@ -72,6 +75,20 @@ final class MindBookApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
         appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "退出 MindBook", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appItem.submenu = appMenu
+
+        // WKWebView 依赖系统「编辑」菜单才能收到 ⌘C / ⌘V / ⌘X / ⌘A / ⌘Z
+        let editItem = NSMenuItem()
+        menubar.addItem(editItem)
+        let editMenu = NSMenu(title: "编辑")
+        editMenu.addItem(NSMenuItem(title: "撤销", action: Selector(("undo:")), keyEquivalent: "z"))
+        editMenu.addItem(NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "Z"))
+        editMenu.addItem(.separator())
+        editMenu.addItem(NSMenuItem(title: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        editMenu.addItem(NSMenuItem(title: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        editMenu.addItem(NSMenuItem(title: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        editMenu.addItem(NSMenuItem(title: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editItem.submenu = editMenu
+
         NSApp.mainMenu = menubar
     }
 
@@ -89,14 +106,43 @@ final class MindBookApp: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
     }
 
     private func attachWeb(to window: NSWindow, path: String) {
-        let web = WKWebView(frame: window.contentView?.bounds ?? .zero)
-        web.autoresizingMask = [.width, .height]
+        let root = NSView(frame: window.contentView?.bounds ?? .zero)
+        root.wantsLayer = true
+        window.contentView = root
+
+        let web = WKWebView(frame: .zero)
+        web.translatesAutoresizingMaskIntoConstraints = false
         web.uiDelegate = self
         web.navigationDelegate = self
-        window.contentView = web
+        web.setValue(false, forKey: "drawsBackground")
+        root.addSubview(web)
+        NSLayoutConstraint.activate([
+            web.topAnchor.constraint(equalTo: root.topAnchor),
+            web.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            web.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            web.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+        ])
+
+        if window == mainWindow {
+            mainWeb = web
+        } else {
+            petWeb = web
+        }
+
         if let url = URL(string: "http://127.0.0.1:3000" + path) {
             web.load(URLRequest(url: url))
         }
+        window.makeFirstResponder(web)
+        // 首帧后强制一次布局，避免 WKWebView 停在左上角小矩形
+        DispatchQueue.main.async {
+            root.layoutSubtreeIfNeeded()
+            web.layoutSubtreeIfNeeded()
+            window.makeFirstResponder(web)
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.window?.makeFirstResponder(webView)
     }
 
     private func showStatus(_ text: String, on window: NSWindow) {

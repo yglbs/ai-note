@@ -4,6 +4,20 @@ import type { ChatModel } from "../models";
 import { splitSpeculation } from "../json";
 
 const KIND_INSTRUCTIONS: Record<OrganizeKind, string> = {
+  dev_input: `把头脑风暴/随手想法整理成可直接交给开发（人或 AI coding agent）的输入说明。
+使用 Markdown，按下面章节输出（没有信息的章节写「未提及」或「待确认」，不要编造需求）：
+1. 一句话目标
+2. 背景与动机
+3. 用户与场景
+4. 范围内 / 范围外
+5. 功能清单（可勾选的条目，动词开头）
+6. 关键流程（步骤）
+7. 数据与状态（实体、字段、状态机草稿）
+8. 接口与边界（对外能力、依赖、约束）
+9. 验收标准（可验证的 Given/When/Then 或检查列表）
+10. 风险与待澄清问题
+11. 建议实现顺序（小步可交付）
+语气务实、可执行；保留原文里的专有名词与产品细节；推断处标 [AI推测]。`,
   markdown: "把笔记整理为结构清晰的 Markdown，保留事实，补齐小标题。",
   one_sentence: "用一句话概括笔记核心。",
   three_sentences: "用三句话概括：是什么、为什么重要、关键机制。",

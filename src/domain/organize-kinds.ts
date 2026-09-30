@@ -1,4 +1,5 @@
 export const ORGANIZE_KINDS = [
+  { id: "dev_input", label: "开发输入" },
   { id: "markdown", label: "Markdown 整理" },
   { id: "one_sentence", label: "一句话总结" },
   { id: "three_sentences", label: "三句话总结" },

@@ -15,6 +15,17 @@ npm run dev
 
 打开 [http://localhost:3000](http://localhost:3000)。
 
+### 做成桌面应用（推荐日常使用）
+
+依赖装好后执行一次：
+
+```bash
+export PATH="$(pwd)/.tools/node/bin:$PATH"
+npm run app
+```
+
+会在桌面和启动台（`~/Applications`）生成 `MindBook.app`。之后**双击图标**即可：自动用便携 Node 拉起本地服务并打开窗口，不用再敲命令。第一次若被系统拦住，右键选「打开」。
+
 在左上角「设置」里填写，或复制 `.env.example` 为 `.env.local`：
 
 - `DEEPSEEK_API_KEY`：对话、整理、检测、面试、知识地图
@@ -22,15 +33,19 @@ npm run dev
 
 ## 笔记
 
-正文在中间的纸上。底部有四个入口：整理、生图、检测、面试。
+正文在中间的纸上。底部默认是整理、生图；打开「学习复习」后才会出现检测、面试。
 
-选中一段文字再整理或生图，只处理这一段，原文不会自动改掉。确认之后才会写回；没选中时，整理可以应用到整篇。
+整理里的「开发输入」会把头脑风暴收成可交给开发的说明（目标、范围、功能清单、数据草稿、验收标准等）。选中一段再整理，只处理这一段；确认之后才会写回。
 
 图片挂在纸边，点开可以看大图。检测是在原文上做标记。面试是单独一页，可以多轮问。
 
-## 知识空间
+## 学习复习（可选）
 
-首页是知识空间：最近学习、知识地图、待复习、知识缺口、合并笔记。
+左上角「设置」里可开关。默认关闭：首页偏记事；打开后才显示知识地图、待复习、缺口、伙伴出题，以及笔记里的检测/面试。
+
+## 知识空间 / 首页
+
+关闭学习复习时：最近笔记、合并笔记。打开后额外有：知识地图、待复习、知识缺口。
 
 地图一次展开一篇笔记，圆点是这篇里的知识点。合并会先确认，再生成一篇新笔记，原来的笔记留着。AI 给的关系、缺口和复习都是建议，要点确认才会留下来。
 
@@ -42,25 +57,6 @@ npm run dev
 
 ## 本地应用
 
-桌面和启动台里的 `MindBook.app` 是本地窗口，打开的还是这个项目。第一次若被系统拦住，在图标上右键选「打开」。
+`MindBook.app` 是本地窗口壳（源码 `desktop/MindBook.swift`），打开的还是本仓库的 Next 服务。包内 `Contents/Resources/project-root` 指向项目路径；3000 端口未开时会用 `.tools/node` 自动执行 `next dev`。
 
-源码在 `desktop/MindBook.swift`，图标是 `desktop/AppIcon.icns`。应用会读包内 `Contents/Resources/project-root` 里的项目路径。本机 3000 端口没开时，它会自己拉起开发服务。
-
-重新编译并装到桌面和启动台：
-
-```bash
-ROOT="$(pwd)"
-STAGE="$ROOT/desktop/.build/MindBook.app"
-rm -rf "$STAGE"
-mkdir -p "$STAGE/Contents/MacOS" "$STAGE/Contents/Resources"
-swiftc -O -o "$STAGE/Contents/MacOS/MindBook" desktop/MindBook.swift -framework Cocoa -framework WebKit
-cp desktop/Info.plist "$STAGE/Contents/Info.plist"
-cp desktop/AppIcon.icns "$STAGE/Contents/Resources/AppIcon.icns"
-printf '%s\n' "$ROOT" > "$STAGE/Contents/Resources/project-root"
-xattr -cr "$STAGE"
-codesign --force --deep --sign - "$STAGE"
-rm -rf "$HOME/Desktop/MindBook.app" "$HOME/Applications/MindBook.app"
-cp -R "$STAGE" "$HOME/Desktop/MindBook.app"
-cp -R "$STAGE" "$HOME/Applications/MindBook.app"
-```
-# ai-note
+重装：`npm run app`（等价于 `bash scripts/install-app.sh`）。

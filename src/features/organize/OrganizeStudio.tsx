@@ -5,6 +5,7 @@ import { ORGANIZE_KINDS, organizeKindLabel, type OrganizeKind } from "@/domain/o
 import type { AIResultRow } from "@/db/schema";
 
 const FOCUS: Array<{ id: OrganizeKind; hint: string }> = [
+  { id: "dev_input", hint: "头脑风暴 → 可交给开发的说明" },
   { id: "markdown", hint: "整理成可以读下去的正文" },
   { id: "structured", hint: "分层、分点，留下骨架" },
   { id: "outline", hint: "从标题看到知识树" },
